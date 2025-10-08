@@ -273,6 +273,8 @@ your-obs-plugin/
 
 ## Commands
 
+📖 **For detailed command documentation with examples and usage instructions, see [Commands Documentation](docs/commands.md)** (Available in both English and Chinese)
+
 | Command | Shortcut | Description |
 |---------|----------|-------------|
 | `OBS Plugin: Configure CMake Build System` | - | Set up or modify build configuration |

@@ -273,6 +273,8 @@ your-obs-plugin/
 
 ## 命令
 
+📖 **详细的命令文档（包含示例和使用说明），请参见 [命令文档](docs/commands.md)**（提供中英文对照）
+
 | 命令 | 快捷键 | 描述 |
 |------|--------|------|
 | `OBS Plugin: Configure CMake Build System` | - | 设置或修改构建配置 |

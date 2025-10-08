@@ -1,0 +1,96 @@
+{
+  "$schema": "./obspluginrc.schema.json",
+  "sdk_path": ".deps/obs-studio",
+  "build_dir": "build_macos",
+  "build_system": "cmake",
+  "plugin_entry": "plugin-main.cpp",
+  "platform_profiles": {
+    "macos": {
+      "preset": "macos",
+      "config": "Debug",
+      "generator": "Ninja",
+      "qt_path": ".deps/qt6",
+      "cmake_args": [
+        "-DCMAKE_BUILD_TYPE=Debug",
+        "-DENABLE_FRONTEND_API=ON",
+        "-DENABLE_QT=ON"
+      ],
+      "build_args": [
+        "--config", "Debug"
+      ]
+    },
+    "windows": {
+      "preset": "windows",
+      "config": "Debug",
+      "generator": "Visual Studio 17 2022",
+      "qt_path": ".deps/qt6",
+      "cmake_args": [
+        "-DCMAKE_BUILD_TYPE=Debug",
+        "-DENABLE_FRONTEND_API=ON",
+        "-DENABLE_QT=ON"
+      ],
+      "build_args": [
+        "--config", "Debug"
+      ]
+    },
+    "linux": {
+      "preset": "linux",
+      "config": "Debug",
+      "generator": "Unix Makefiles",
+      "qt_path": ".deps/qt6",
+      "cmake_args": [
+        "-DCMAKE_BUILD_TYPE=Debug",
+        "-DENABLE_FRONTEND_API=ON",
+        "-DENABLE_QT=ON"
+      ],
+      "build_args": [
+        "--config", "Debug"
+      ]
+    }
+  },
+  "dependencies": {
+    "obs": ".deps/obs-studio",
+    "qt6": ".deps/qt6",
+    "frontend_api": ".deps/obs-studio/UI/obs-frontend-api",
+    "obs_frontend_api": true,
+    "custom_deps": [".deps"]
+  },
+  "coding_conventions": {
+    "header_extension": ".hpp",
+    "use_pragma_once": true,
+    "ui_directory": "ui",
+    "namespace": "obs_plugin",
+    "moc_includes": true,
+    "class_naming": "PascalCase",
+    "function_naming": "snake_case",
+    "variable_naming": "snake_case_",
+    "constant_naming": "UPPER_CASE",
+    "file_naming": "kebab-case"
+  },
+  "ai_prompts": {
+    "system_context": "You are an expert OBS Studio plugin developer with deep knowledge of C++, Qt6, and the OBS Studio API. Always follow OBS plugin development best practices and conventions.",
+    "build_error_context": "When analyzing build errors for OBS plugins, consider:\n- Qt6 integration and MOC compilation\n- CMake configuration and preset usage\n- OBS API compatibility and version requirements\n- Platform-specific compilation issues\n- Dependency management in .deps directory",
+    "code_review_context": "When reviewing OBS plugin code, check for:\n- Proper resource management and cleanup\n- Thread safety in OBS callbacks\n- Correct OBS API usage patterns\n- Qt6 signal/slot connections\n- Memory leak prevention\n- Error handling and logging",
+    "fix_suggestion_context": "When suggesting fixes for OBS plugin issues:\n- Provide complete, compilable code snippets\n- Follow the established coding conventions\n- Include necessary #include statements\n- Consider cross-platform compatibility\n- Ensure proper OBS API lifecycle management",
+    "template_generation_context": "When generating OBS plugin templates:\n- Use modern C++17 features appropriately\n- Include proper Qt6 integration\n- Follow OBS plugin structure conventions\n- Add comprehensive error handling\n- Include documentation comments"
+  },
+  "build_commands": {
+    "configure": "cmake --preset {preset}",
+    "build": "cmake --build --preset {preset} --config {config}",
+    "clean": "cmake --build --preset {preset} --config {config} --target clean",
+    "install": "cmake --build --preset {preset} --config {config} --target install"
+  },
+  "auto_features": {
+    "auto_detect_obs_project": true,
+    "auto_inject_ai_context": true,
+    "auto_commit_on_success": true,
+    "auto_fix_conventions": true,
+    "real_time_error_parsing": true,
+    "convention_validation": true
+  },
+  "git_settings": {
+    "commit_message_template": "Fix: {summary}\n\n- {details}\n- Applied AI-suggested fixes\n- Ensured OBS plugin convention compliance",
+    "auto_stage_files": true,
+    "exclude_build_artifacts": true
+  }
+}

@@ -41,7 +41,7 @@ An intelligent Trae IDE extension that provides AI-powered assistance for OBS St
 
 #### Prerequisites
 
-- **Node.js**: Version 18.0.0 or higher
+- **Node.js**: Version 20.0.0 or higher (recommended for best compatibility)
 - **npm**: Comes with Node.js
 - **Git**: For cloning the repository
 - **VS Code Extension Manager (vsce)**: For packaging the extension

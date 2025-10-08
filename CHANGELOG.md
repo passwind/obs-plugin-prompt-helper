@@ -13,19 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Future changes will be documented here
 
-### Deprecated
-- Features planned for deprecation will be noted here
-
-### Removed
-- Removed features will be listed here
-
 ### Fixed
 - Bug fixes will be documented here
 
-### Security
-- Security improvements will be noted here
-
-## [1.0.0] - 2024-10-08
+## [1.0.0] - 2024-12-30
 
 ### Added
 - **Core Features**
@@ -74,6 +65,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Initial release - no previous changes to document
+
+### Fixed
+- Fixed ESLint configuration error with `@typescript-eslint/naming-convention` rule
+- Resolved invalid `selector: "import"` configuration issue
+- Fixed GitHub Actions workflow Node.js compatibility (upgraded to Node.js 20)
+- Resolved `undici` module compatibility issue in automated packaging
+- Auto-fixed code style warnings (missing curly braces)
+- Ensured successful automated packaging and release workflow
 
 ### Security
 - Implemented secure configuration handling

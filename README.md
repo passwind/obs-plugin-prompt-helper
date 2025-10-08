@@ -319,15 +319,184 @@ The extension automatically validates:
 - ✅ Qt6 MOC includes are present
 - ✅ Proper namespace usage
 
-## AI Context Injection
+## AI Context Injection & Automatic Prompt Enhancement
 
-The extension automatically provides AI assistants with relevant context:
+The extension provides intelligent AI assistance through automatic context injection and prompt enhancement. When you interact with AI assistants in Trae IDE, the extension automatically enriches your prompts with relevant OBS plugin development context.
+
+### 🤖 **Automatic Context Enhancement**
+
+The extension automatically detects when you're working with AI assistants and injects relevant context:
 
 - **OBS API Knowledge**: Current OBS Studio API patterns and best practices
 - **Build Configuration**: Your specific CMake and platform settings
 - **Project Structure**: Understanding of your plugin's architecture
 - **Error Context**: Detailed analysis of build failures and warnings
 - **Convention Awareness**: Knowledge of OBS plugin coding standards
+- **File Context**: Current file content and related dependencies
+- **Build History**: Recent build results and error patterns
+
+### 📋 **How to Enable AI Prompt Enhancement**
+
+#### Step 1: Enable the Feature
+1. Open VS Code/Trae IDE Settings (`Cmd+,` / `Ctrl+,`)
+2. Search for "OBS Plugin"
+3. Enable `obsPlugin.aiContextInjection` setting
+4. Optionally configure `obsPlugin.aiPromptTemplate` for custom templates
+
+#### Step 2: Configure Your Project
+Ensure your project has a `.obspluginrc.json` configuration file:
+```json
+{
+  "ai_features": {
+    "context_injection": true,
+    "auto_prompt_enhancement": true,
+    "include_build_context": true,
+    "include_error_context": true,
+    "prompt_template": "obs_plugin_development"
+  }
+}
+```
+
+#### Step 3: Verify Setup
+1. Open any file in your OBS plugin project
+2. Start a conversation with an AI assistant in Trae IDE
+3. Look for the context injection indicator in the AI chat
+4. Check that OBS-specific context appears in your prompts
+
+### 🎯 **When Context is Automatically Injected**
+
+The extension automatically enhances your AI prompts when:
+
+- **File Context**: You're working on `.cpp`, `.hpp`, or `.h` files in an OBS plugin project
+- **Build Errors**: Recent build failures are detected
+- **Configuration Changes**: You've modified `.obspluginrc.json` or `CMakePresets.json`
+- **Template Generation**: You're creating new OBS sources or UI components
+- **Convention Validation**: Code style or structure issues are found
+
+### 📝 **Context Content Provided**
+
+When active, the extension automatically includes:
+
+#### Project Information
+```
+Project Type: OBS Studio Plugin
+SDK Path: /usr/local/obs-studio
+Build System: CMake with Presets
+Platform: macOS (or detected platform)
+```
+
+#### Current Configuration
+```
+Build Configuration:
+- Preset: macos-debug
+- Generator: Ninja
+- Output: build_macos/
+- Dependencies: Qt6, OBS SDK
+```
+
+#### Coding Conventions
+```
+OBS Plugin Conventions:
+- Header files: .hpp extension
+- Use #pragma once
+- UI components in ui/ directory
+- Namespace: obs_plugin
+```
+
+#### Recent Build Context (if applicable)
+```
+Recent Build Status: Failed
+Error Summary: Missing Qt6 MOC includes
+Suggested Fix: Add Q_OBJECT macro and moc includes
+```
+
+### ⚙️ **Configuration Options**
+
+Add these settings to your `.obspluginrc.json`:
+
+```json
+{
+  "ai_features": {
+    "context_injection": true,
+    "auto_prompt_enhancement": true,
+    "include_build_context": true,
+    "include_error_context": true,
+    "include_file_context": true,
+    "max_context_length": 2000,
+    "prompt_template": "obs_plugin_development",
+    "custom_context": {
+      "project_description": "Custom OBS source for video effects",
+      "special_requirements": "Real-time processing, GPU acceleration"
+    }
+  }
+}
+```
+
+#### Configuration Parameters
+
+| Setting | Type | Default | Description |
+|---------|------|---------|-------------|
+| `context_injection` | boolean | `true` | Enable/disable context injection |
+| `auto_prompt_enhancement` | boolean | `true` | Automatically enhance AI prompts |
+| `include_build_context` | boolean | `true` | Include recent build information |
+| `include_error_context` | boolean | `true` | Include error analysis |
+| `include_file_context` | boolean | `true` | Include current file context |
+| `max_context_length` | number | `2000` | Maximum context characters |
+| `prompt_template` | string | `"obs_plugin_development"` | Template for context formatting |
+
+### 🔍 **Verifying Context Injection**
+
+To confirm the feature is working:
+
+1. **Check AI Chat Interface**: Look for a small "🔧 OBS Context" indicator
+2. **Review Prompt Content**: Expanded prompts will show OBS-specific information
+3. **Test with Build Errors**: Trigger a build error and ask for help
+4. **Check Extension Logs**: Open Output panel → "OBS Plugin AI Assistant"
+
+### 🛠 **Troubleshooting**
+
+#### Context Not Appearing
+```bash
+# Check if feature is enabled
+1. Verify obsPlugin.aiContextInjection is enabled in settings
+2. Ensure .obspluginrc.json exists with ai_features configured
+3. Confirm you're in an OBS plugin project directory
+4. Restart Trae IDE after configuration changes
+```
+
+#### Context Too Long/Short
+```json
+// Adjust context length in .obspluginrc.json
+{
+  "ai_features": {
+    "max_context_length": 1500,  // Reduce for shorter context
+    "include_file_context": false  // Disable file content inclusion
+  }
+}
+```
+
+#### Custom Context Templates
+```json
+// Create custom context in .obspluginrc.json
+{
+  "ai_features": {
+    "custom_context": {
+      "project_type": "Real-time video filter",
+      "performance_requirements": "60fps processing",
+      "target_platforms": ["macOS", "Windows"],
+      "special_notes": "Uses GPU acceleration with Metal/DirectX"
+    }
+  }
+}
+```
+
+### 💡 **Best Practices**
+
+1. **Keep Context Relevant**: Disable unnecessary context types for better performance
+2. **Use Custom Context**: Add project-specific information for better AI responses
+3. **Monitor Context Length**: Adjust `max_context_length` based on your AI model limits
+4. **Regular Updates**: Keep your `.obspluginrc.json` updated with current project state
+5. **Test Regularly**: Verify context injection after major project changes
 
 ## Platform Support
 

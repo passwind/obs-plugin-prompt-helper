@@ -259,10 +259,10 @@ Please provide solutions that comply with the project's coding standards.`;
      */
     private getFileType(fileName: string): 'hpp' | 'cpp' | 'ui' | 'cmake' {
         const ext = path.extname(fileName).toLowerCase();
-        if (ext === '.hpp' || ext === '.h') return 'hpp';
-        if (ext === '.cpp' || ext === '.c' || ext === '.cc') return 'cpp';
-        if (fileName.includes('CMakeLists.txt') || ext === '.cmake') return 'cmake';
-        if (fileName.includes('/ui/')) return 'ui';
+        if (ext === '.hpp' || ext === '.h') {return 'hpp';}
+        if (ext === '.cpp' || ext === '.c' || ext === '.cc') {return 'cpp';}
+        if (fileName.includes('CMakeLists.txt') || ext === '.cmake') {return 'cmake';}
+        if (fileName.includes('/ui/')) {return 'ui';}
         return 'cpp';
     }
 

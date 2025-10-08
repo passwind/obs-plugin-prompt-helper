@@ -192,8 +192,8 @@ export class LogParser {
      */
     private normalizeSeverity(severity: string): 'error' | 'warning' | 'info' {
         const lower = severity.toLowerCase();
-        if (lower.includes('error')) return 'error';
-        if (lower.includes('warning')) return 'warning';
+        if (lower.includes('error')) {return 'error';}
+        if (lower.includes('warning')) {return 'warning';}
         return 'info';
     }
 

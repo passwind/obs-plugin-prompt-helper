@@ -260,6 +260,7 @@ export class CMakeCacheParser {
         const candidates = [
             'build',
             'build_macos',
+            'build_x64',
             'build_windows', 
             'build_linux',
             'build_debug',

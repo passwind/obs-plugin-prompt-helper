@@ -133,6 +133,14 @@ export class ConfigManager {
     }
 
     /**
+     * Check if configuration exists in workspace
+     */
+    public hasConfiguration(workspaceRoot: string): boolean {
+        const configPath = path.join(workspaceRoot, '.obspluginrc.json');
+        return fs.existsSync(configPath);
+    }
+
+    /**
      * Generate default configuration for OBS plugin project
      */
     public async generateDefaultConfig(rootPath: string): Promise<ObsConfig> {
@@ -164,15 +172,18 @@ export class ConfigManager {
      * Create default configuration template
      */
     private createDefaultConfig(): ObsConfig {
-        const currentPlatform = this.getCurrentPlatform();
-        
         return {
             sdk_path: '.deps/obs-studio',
-            build_dir: `build_${currentPlatform}`,
+            platform_build_dirs: {
+                macos: 'build_macos',
+                windows: 'build_x64',
+                linux: 'build_linux'
+            },
             build_system: 'cmake',
             plugin_entry: 'src/plugin.cpp',
             platform_profiles: {
                 macos: {
+                    build_dir: 'build_macos',
                     cmake_preset: 'macos',
                     build_command: 'cmake --build --preset macos --config Debug',
                     configure_command: 'cmake --preset macos',
@@ -180,13 +191,15 @@ export class ConfigManager {
                     compiler: 'clang++'
                 },
                 windows: {
+                    build_dir: 'build_x64',
                     cmake_preset: 'windows-x64',
                     build_command: 'cmake --build --preset windows-x64 --config Debug',
                     configure_command: 'cmake --preset windows-x64',
-                    output_dir: 'build_windows',
+                    output_dir: 'build_x64',
                     compiler: 'msvc'
                 },
                 linux: {
+                    build_dir: 'build_linux',
                     cmake_preset: 'linux',
                     build_command: 'cmake --build --preset linux --config Debug',
                     configure_command: 'cmake --preset linux',
@@ -427,6 +440,36 @@ export class ConfigManager {
                 return 'linux';
             default:
                 return 'linux';
+        }
+    }
+
+    /**
+     * Get build directory for current platform
+     */
+    public getBuildDirectory(platform?: string): string {
+        const targetPlatform = platform || this.getCurrentPlatform();
+        
+        // First try to get from platform_build_dirs
+        if (this.config?.platform_build_dirs?.[targetPlatform]) {
+            return this.config.platform_build_dirs[targetPlatform];
+        }
+        
+        // Fallback to platform profile build_dir
+        const profile = this.getPlatformProfile(targetPlatform);
+        if (profile?.build_dir) {
+            return profile.build_dir;
+        }
+        
+        // Final fallback to default naming convention
+        switch (targetPlatform) {
+            case 'macos':
+                return 'build_macos';
+            case 'windows':
+                return 'build_x64';
+            case 'linux':
+                return 'build_linux';
+            default:
+                return 'build';
         }
     }
 }

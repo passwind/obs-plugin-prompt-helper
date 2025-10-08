@@ -21,12 +21,18 @@ export class TemplateManager {
      */
     public async generateTemplate(request: TemplateGeneration): Promise<string> {
         try {
-            const template = await this.getTemplate(request.template_name);
+            const templateName = request.template_name;
+            if (!templateName) {
+                throw new Error('Template name is required');
+            }
+            
+            const template = await this.getTemplate(templateName);
             if (!template) {
-                throw new Error(`Template not found: ${request.template_name}`);
+                throw new Error(`Template not found: ${templateName}`);
             }
 
-            const generatedContent = this.interpolateTemplate(template, request.variables);
+            const variables = request.variables || {};
+            const generatedContent = this.interpolateTemplate(template, variables);
             
             if (request.output_path) {
                 await this.writeTemplateToFile(generatedContent, request.output_path);

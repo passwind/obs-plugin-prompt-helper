@@ -1,14 +1,19 @@
 {
   "$schema": "./obspluginrc.schema.json",
   "sdk_path": ".deps/obs-studio",
-  "build_dir": "build_macos",
   "build_system": "cmake",
   "plugin_entry": "plugin-main.cpp",
+  "platform_build_dirs": {
+    "macos": "build_macos",
+    "windows": "build_x64",
+    "linux": "build_linux"
+  },
   "platform_profiles": {
     "macos": {
       "preset": "macos",
       "config": "Debug",
       "generator": "Ninja",
+      "build_dir": "build_macos",
       "qt_path": ".deps/qt6",
       "cmake_args": [
         "-DCMAKE_BUILD_TYPE=Debug",
@@ -23,6 +28,7 @@
       "preset": "windows",
       "config": "Debug",
       "generator": "Visual Studio 17 2022",
+      "build_dir": "build_x64",
       "qt_path": ".deps/qt6",
       "cmake_args": [
         "-DCMAKE_BUILD_TYPE=Debug",
@@ -37,6 +43,7 @@
       "preset": "linux",
       "config": "Debug",
       "generator": "Unix Makefiles",
+      "build_dir": "build_linux",
       "qt_path": ".deps/qt6",
       "cmake_args": [
         "-DCMAKE_BUILD_TYPE=Debug",

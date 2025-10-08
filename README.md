@@ -30,10 +30,197 @@ An intelligent Trae IDE extension that provides AI-powered assistance for OBS St
 
 ## Installation
 
+### Method 1: From Extension Marketplace (Recommended)
+
 1. Open Trae IDE
 2. Go to Extensions marketplace
 3. Search for "OBS Plugin AI Assistant"
 4. Click Install
+
+### Method 2: Build and Install from Source
+
+#### Prerequisites
+
+- **Node.js**: Version 18.0.0 or higher
+- **npm**: Comes with Node.js
+- **Git**: For cloning the repository
+- **VS Code Extension Manager (vsce)**: For packaging the extension
+
+#### Step 1: Clone the Repository
+
+```bash
+git clone https://github.com/trae-ai/obs-plugin-ai-assistant.git
+cd obs-plugin-ai-assistant
+```
+
+#### Step 2: Install Dependencies
+
+```bash
+npm install
+```
+
+#### Step 3: Install VS Code Extension Manager (if not already installed)
+
+```bash
+npm install -g @vscode/vsce
+```
+
+#### Step 4: Compile the TypeScript Source
+
+```bash
+# Compile once
+npm run compile
+
+# Or watch for changes during development
+npm run watch
+```
+
+#### Step 5: Package the Extension
+
+```bash
+# Create a .vsix package file
+npm run package
+```
+
+This will create a `.vsix` file in the project root directory (e.g., `obs-plugin-ai-assistant-1.0.0.vsix`).
+
+#### Step 6: Install the Extension
+
+**Option A: Install via Command Line**
+```bash
+# Install the packaged extension
+code --install-extension obs-plugin-ai-assistant-1.0.0.vsix
+```
+
+**Option B: Install via VS Code/Trae IDE**
+1. Open VS Code or Trae IDE
+2. Open Command Palette (`Cmd+Shift+P` / `Ctrl+Shift+P`)
+3. Run command: `Extensions: Install from VSIX...`
+4. Select the generated `.vsix` file
+5. Restart the IDE when prompted
+
+#### Step 7: Verify Installation
+
+1. Open Command Palette (`Cmd+Shift+P` / `Ctrl+Shift+P`)
+2. Type "OBS Plugin" - you should see the extension commands
+3. Check the Extensions panel to confirm the extension is installed and enabled
+
+### Method 3: Development Mode Installation
+
+For development and testing purposes:
+
+#### Step 1: Clone and Setup
+
+```bash
+git clone https://github.com/trae-ai/obs-plugin-ai-assistant.git
+cd obs-plugin-ai-assistant
+npm install
+```
+
+#### Step 2: Open in Development Mode
+
+```bash
+# Open the project in VS Code
+code .
+
+# Or open in Trae IDE
+trae .
+```
+
+#### Step 3: Launch Extension Development Host
+
+1. Press `F5` or go to `Run > Start Debugging`
+2. This opens a new Extension Development Host window
+3. The extension will be loaded and ready for testing
+
+#### Step 4: Test the Extension
+
+In the Extension Development Host window:
+1. Open an OBS plugin project or create a new folder
+2. Use Command Palette to test extension commands
+3. Check the Debug Console for any errors or logs
+
+### Troubleshooting Installation
+
+#### Common Issues
+
+**1. Node.js Version Mismatch**
+```bash
+# Check your Node.js version
+node --version
+
+# Should be 18.0.0 or higher
+# If not, update Node.js from https://nodejs.org/
+```
+
+**2. Permission Issues (macOS/Linux)**
+```bash
+# If you get permission errors, try:
+sudo npm install -g @vscode/vsce
+```
+
+**3. TypeScript Compilation Errors**
+```bash
+# Clean and reinstall dependencies
+rm -rf node_modules package-lock.json
+npm install
+npm run compile
+```
+
+**4. Extension Not Loading**
+```bash
+# Check if the extension is properly installed
+code --list-extensions | grep obs-plugin
+
+# If not found, try reinstalling
+code --uninstall-extension trae-ai.obs-plugin-ai-assistant
+code --install-extension obs-plugin-ai-assistant-1.0.0.vsix
+```
+
+**5. VSIX Package Creation Fails**
+```bash
+# Ensure all dependencies are installed
+npm install
+
+# Check for TypeScript errors
+npm run compile
+
+# Try packaging again
+npm run package
+```
+
+#### Build Scripts Reference
+
+The following npm scripts are available:
+
+| Script | Command | Description |
+|--------|---------|-------------|
+| `compile` | `npm run compile` | Compile TypeScript to JavaScript |
+| `watch` | `npm run watch` | Watch for changes and auto-compile |
+| `test` | `npm run test` | Run extension tests |
+| `package` | `npm run package` | Create VSIX package for distribution |
+| `lint` | `npm run lint` | Check code style and potential issues |
+| `lint:fix` | `npm run lint:fix` | Auto-fix linting issues |
+
+#### Development Dependencies
+
+The extension requires these development dependencies:
+
+- `@types/node`: Node.js type definitions
+- `@types/vscode`: VS Code API type definitions  
+- `@typescript-eslint/eslint-plugin`: TypeScript ESLint plugin
+- `@typescript-eslint/parser`: TypeScript parser for ESLint
+- `eslint`: JavaScript/TypeScript linter
+- `typescript`: TypeScript compiler
+
+#### Runtime Dependencies
+
+The extension uses these runtime dependencies:
+
+- `ajv`: JSON schema validation
+- `chokidar`: File system watcher
+- `glob`: File pattern matching
+- `yaml`: YAML file parsing
 
 ## Quick Start
 

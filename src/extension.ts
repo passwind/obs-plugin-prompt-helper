@@ -7,6 +7,7 @@ import { PatchGenerator } from './core/PatchGenerator';
 import { TemplateManager } from './core/TemplateManager';
 import { ObsCommands } from './commands/ObsCommands';
 import { Logger } from './utils/Logger';
+import { OutputChannelManager } from './utils/OutputChannelManager';
 
 let configManager: ConfigManager;
 let aiMiddleware: AIMiddleware;
@@ -14,6 +15,7 @@ let buildExecutor: BuildExecutor;
 let logParser: LogParser;
 let patchGenerator: PatchGenerator;
 let templateManager: TemplateManager;
+let outputChannelManager: OutputChannelManager;
 let obsCommands: ObsCommands;
 
 export function activate(context: vscode.ExtensionContext) {
@@ -23,10 +25,11 @@ export function activate(context: vscode.ExtensionContext) {
 
     try {
         // Initialize core components
-        configManager = new ConfigManager();
+        configManager = new ConfigManager(context);
         logParser = new LogParser();
-        aiMiddleware = new AIMiddleware();
-        buildExecutor = new BuildExecutor(logParser);
+        aiMiddleware = new AIMiddleware(configManager);
+        outputChannelManager = new OutputChannelManager('OBS Plugin Build');
+        buildExecutor = new BuildExecutor(outputChannelManager, logParser, configManager);
         patchGenerator = new PatchGenerator();
         templateManager = new TemplateManager();
 
@@ -63,7 +66,7 @@ export function activate(context: vscode.ExtensionContext) {
                 if (workspaceRoot) {
                     const config = await configManager.loadConfig(workspaceRoot);
                     if (config?.auto_features?.auto_inject_ai_context) {
-                        await aiMiddleware.registerContextInjection(editor.document.uri.fsPath);
+                        aiMiddleware.registerContextInjection();
                     }
                 }
             }
@@ -73,21 +76,20 @@ export function activate(context: vscode.ExtensionContext) {
         // Show welcome message for new users
         const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
         if (workspaceRoot) {
-            configManager.hasConfiguration(workspaceRoot).then(hasConfig => {
-                if (!hasConfig) {
-                    vscode.window.showInformationMessage(
-                        'Welcome to OBS Plugin AI Assistant! This extension helps you develop OBS Studio plugins with AI assistance.',
-                        'Configure Now',
-                        'Learn More'
-                    ).then(selection => {
-                        if (selection === 'Configure Now') {
-                            vscode.commands.executeCommand('obs.configure');
-                        } else if (selection === 'Learn More') {
-                            vscode.env.openExternal(vscode.Uri.parse('https://github.com/obsproject/obs-studio/wiki/Plugins'));
-                        }
-                    });
-                }
-            });
+            const hasConfig = configManager.hasConfiguration(workspaceRoot);
+            if (!hasConfig) {
+                vscode.window.showInformationMessage(
+                    'Welcome to OBS Plugin AI Assistant! This extension helps you develop OBS Studio plugins with AI assistance.',
+                    'Configure Now',
+                    'Learn More'
+                ).then(selection => {
+                    if (selection === 'Configure Now') {
+                        vscode.commands.executeCommand('obs.configure');
+                    } else if (selection === 'Learn More') {
+                        vscode.env.openExternal(vscode.Uri.parse('https://github.com/obsproject/obs-studio/wiki/Plugins'));
+                    }
+                });
+            }
         }
 
         Logger.info('OBS Plugin AI Assistant activated successfully');

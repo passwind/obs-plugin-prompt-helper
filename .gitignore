@@ -65,3 +65,6 @@ coverage/
 # Build artifacts
 dist/
 build/
+
+# Trae AI documents and cache
+.trae/

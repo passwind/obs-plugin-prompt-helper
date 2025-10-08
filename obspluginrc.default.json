@@ -1,0 +1,89 @@
+{
+  "project_name": "{{project_name}}",
+  "project_root": "{{project_root}}",
+  "platform_build_dirs": {
+    "macos": "build_macos",
+    "windows": "build_x64",
+    "linux": "build"
+  },
+  "platform_profiles": {
+    "macos": {
+      "build_dir": "build_macos",
+      "cmake_generator": "Xcode",
+      "cmake_args": [
+        "-DCMAKE_OSX_ARCHITECTURES=x86_64;arm64",
+        "-DCMAKE_OSX_DEPLOYMENT_TARGET=10.15"
+      ],
+      "dependencies": {
+        "obs_studio": {
+          "path": "/Applications/OBS.app/Contents/Resources",
+          "include_dirs": [
+            "/Applications/OBS.app/Contents/Resources/include"
+          ],
+          "lib_dirs": [
+            "/Applications/OBS.app/Contents/Resources/lib"
+          ]
+        },
+        "qt": {
+          "path": "/usr/local/opt/qt",
+          "version": "6.0"
+        }
+      }
+    },
+    "windows": {
+      "build_dir": "build_x64",
+      "cmake_generator": "Visual Studio 17 2022",
+      "cmake_args": [
+        "-A x64"
+      ],
+      "dependencies": {
+        "obs_studio": {
+          "path": "C:\\Program Files\\obs-studio",
+          "include_dirs": [
+            "C:\\Program Files\\obs-studio\\include"
+          ],
+          "lib_dirs": [
+            "C:\\Program Files\\obs-studio\\lib"
+          ]
+        },
+        "qt": {
+          "path": "C:\\Qt\\6.5.0\\msvc2022_64",
+          "version": "6.5"
+        }
+      }
+    },
+    "linux": {
+      "build_dir": "build",
+      "cmake_generator": "Unix Makefiles",
+      "cmake_args": [],
+      "dependencies": {
+        "obs_studio": {
+          "path": "/usr/local",
+          "include_dirs": [
+            "/usr/local/include/obs"
+          ],
+          "lib_dirs": [
+            "/usr/local/lib"
+          ]
+        },
+        "qt": {
+          "path": "/usr/lib/qt6",
+          "version": "6.0"
+        }
+      }
+    }
+  },
+  "coding_conventions": {
+    "class_prefix": "Obs",
+    "file_naming": "snake_case",
+    "auto_commit": false
+  },
+  "template_generation": {
+    "enabled": true,
+    "output_dir": "generated"
+  },
+  "auto_features": {
+    "auto_inject_ai_context": true,
+    "auto_commit_on_success": false
+  }
+}

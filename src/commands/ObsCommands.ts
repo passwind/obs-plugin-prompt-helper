@@ -12,6 +12,8 @@ import { ObsConfig, BuildResult, ErrorCollection } from '../types/ObsConfig';
  * Command handlers for OBS Plugin AI Assistant
  */
 export class ObsCommands {
+    private lastBuildResult: BuildResult | null = null;
+
     constructor(
         private configManager: ConfigManager,
         private buildExecutor: BuildExecutor,
@@ -142,9 +144,14 @@ export class ObsCommands {
             }, async (progress, token) => {
                 progress.report({ message: 'Configuring build...' });
                 
-                const buildResult = await this.buildExecutor.build(config, buildType.toLowerCase(), (output) => {
-                    progress.report({ message: output });
-                });
+                const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || '';
+                const profile = config.platform_profiles[buildType.toLowerCase()];
+                if (!profile) {
+                    throw new Error(`No profile found for build type: ${buildType}`);
+                }
+                
+                const buildResult = await this.buildExecutor.build(profile, workspaceRoot);
+                this.lastBuildResult = buildResult; // Store the build result
 
                 if (buildResult.success) {
                     vscode.window.showInformationMessage('Build completed successfully!');
@@ -198,7 +205,13 @@ export class ObsCommands {
             }, async (progress) => {
                 progress.report({ message: 'Cleaning...' });
                 
-                const result = await this.buildExecutor.clean(config);
+                const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || '';
+                const profile = config.platform_profiles[Object.keys(config.platform_profiles)[0]];
+                if (!profile) {
+                    throw new Error('No platform profile found for clean operation');
+                }
+                
+                const result = await this.buildExecutor.clean(profile, workspaceRoot);
                 if (result.success) {
                     vscode.window.showInformationMessage('Clean completed successfully');
                 } else {
@@ -230,8 +243,7 @@ export class ObsCommands {
             }
 
             // Get recent build errors
-            const buildLog = await this.buildExecutor.getLastBuildLog();
-            if (!buildLog) {
+            if (!this.lastBuildResult || this.lastBuildResult.success || !this.lastBuildResult.errors || this.lastBuildResult.errors.length === 0) {
                 vscode.window.showInformationMessage('No recent build errors found');
                 return;
             }
@@ -244,50 +256,24 @@ export class ObsCommands {
                 progress.report({ message: 'Analyzing build errors...' });
                 
                 // Get AI suggestions
-                const suggestions = await this.aiMiddleware.getFixSuggestions(buildLog, config);
+                const suggestions = await this.aiMiddleware.getFixSuggestions(this.lastBuildResult!.errors);
                 
-                if (suggestions.length === 0) {
+                if (!suggestions || suggestions.trim().length === 0) {
                     vscode.window.showInformationMessage('No AI suggestions available for current errors');
                     return;
                 }
 
-                progress.report({ message: 'Generating patches...' });
+                progress.report({ message: 'Displaying AI suggestions...' });
                 
-                // Show suggestions to user
-                const selectedSuggestion = await vscode.window.showQuickPick(
-                    suggestions.map((s, i) => ({
-                        label: `Fix ${i + 1}: ${s.summary}`,
-                        description: s.description,
-                        suggestion: s
-                    })),
-                    { placeHolder: 'Select a fix to apply' }
-                );
-
-                if (selectedSuggestion) {
-                    const patch = this.patchGenerator.generatePatch(
-                        selectedSuggestion.suggestion.patch_content,
-                        selectedSuggestion.suggestion.affected_files
-                    );
-
-                    // Preview patch
-                    const preview = await this.patchGenerator.previewPatch(patch);
-                    const apply = await vscode.window.showQuickPick(
-                        ['Apply Patch', 'Cancel'],
-                        { 
-                            placeHolder: 'Preview patch and choose action',
-                            detail: preview
-                        }
-                    );
-
-                    if (apply === 'Apply Patch') {
-                        const success = await this.patchGenerator.applyPatch(patch);
-                        if (success) {
-                            vscode.window.showInformationMessage('Patch applied successfully!');
-                        } else {
-                            vscode.window.showErrorMessage('Failed to apply patch');
-                        }
-                    }
-                }
+                // Show AI suggestions in a new document
+                const doc = await vscode.workspace.openTextDocument({
+                    content: `# AI Error Fix Suggestions\n\n${suggestions}`,
+                    language: 'markdown'
+                });
+                
+                await vscode.window.showTextDocument(doc);
+                
+                vscode.window.showInformationMessage('AI suggestions displayed in new document');
             });
 
         } catch (error) {
@@ -481,8 +467,7 @@ export class ObsCommands {
             }
 
             const question = await vscode.window.showInputBox({
-                prompt: `Ask your ${assistanceType.toLowerCase()} question:`,
-                multiline: true
+                prompt: `Ask your ${assistanceType.toLowerCase()} question:`
             });
 
             if (!question) {
@@ -499,7 +484,7 @@ export class ObsCommands {
             }, async (progress) => {
                 progress.report({ message: 'Analyzing question...' });
                 
-                const response = await this.aiMiddleware.getGeneralAssistance(question, config);
+                const response = await this.aiMiddleware.getAssistance(question);
                 
                 // Show response in a new document
                 const doc = await vscode.workspace.openTextDocument({
@@ -527,8 +512,8 @@ export class ObsCommands {
             issues.push('SDK path is not configured');
         }
 
-        if (!config.build_dir) {
-            issues.push('Build directory is not configured');
+        if (!config.platform_build_dirs || Object.keys(config.platform_build_dirs).length === 0) {
+            issues.push('Platform build directories are not configured');
         }
 
         // Validate platform profiles

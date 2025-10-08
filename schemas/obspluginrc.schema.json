@@ -11,11 +11,29 @@
       "default": ".deps/obs-studio",
       "examples": [".deps/obs-studio", ".deps/obs"]
     },
-    "build_dir": {
-      "type": "string", 
-      "description": "Build output directory",
-      "default": "build_macos",
-      "examples": ["build_macos", "build_windows", "build"]
+    "platform_build_dirs": {
+      "type": "object",
+      "description": "Platform-specific build directories",
+      "properties": {
+        "macos": {
+          "type": "string",
+          "default": "build_macos",
+          "description": "Build directory for macOS"
+        },
+        "windows": {
+          "type": "string", 
+          "default": "build_x64",
+          "description": "Build directory for Windows"
+        },
+        "linux": {
+          "type": "string",
+          "default": "build_linux", 
+          "description": "Build directory for Linux"
+        }
+      },
+      "additionalProperties": {
+        "type": "string"
+      }
     },
     "build_system": {
       "type": "string",
@@ -86,6 +104,11 @@
       "type": "object",
       "required": ["cmake_preset", "build_command"],
       "properties": {
+        "build_dir": {
+          "type": "string",
+          "description": "Platform-specific build directory",
+          "examples": ["build_macos", "build_x64", "build_linux"]
+        },
         "cmake_preset": {
           "type": "string",
           "description": "CMake preset name for this platform",

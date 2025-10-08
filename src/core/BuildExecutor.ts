@@ -6,6 +6,7 @@ import { OutputChannelManager } from '../utils/OutputChannelManager';
 import { LogParser } from './LogParser';
 import { CMakeCacheParser, CacheValidationResult } from './CMakeCacheParser';
 import { BuildResult, PlatformProfile } from '../types/ObsConfig';
+import { ConfigManager } from './ConfigManager';
 
 /**
  * Executes CMake preset-based builds with real-time output streaming
@@ -15,12 +16,14 @@ export class BuildExecutor {
     private readonly outputManager: OutputChannelManager;
     private readonly logParser: LogParser;
     private readonly cacheParser: CMakeCacheParser;
+    private readonly configManager: ConfigManager;
     private currentProcess: cp.ChildProcess | null = null;
 
-    constructor(outputManager: OutputChannelManager, logParser: LogParser) {
+    constructor(outputManager: OutputChannelManager, logParser: LogParser, configManager: ConfigManager) {
         this.outputManager = outputManager;
         this.logParser = logParser;
         this.cacheParser = new CMakeCacheParser();
+        this.configManager = configManager;
     }
 
     /**
@@ -215,8 +218,9 @@ export class BuildExecutor {
         try {
             this.outputManager.appendLine('🔍 Validating dependency paths from CMake cache...');
             
-            // Determine build directory from profile
-            const buildDir = path.join(workspaceRoot, profile.output_dir || `build_${this.getCurrentPlatform()}`);
+            // Determine build directory using ConfigManager's platform-specific logic
+            const buildDirName = profile.build_dir || this.configManager.getBuildDirectory();
+            const buildDir = path.join(workspaceRoot, buildDirName);
             this.outputManager.appendLine(`   Build directory: ${buildDir}`);
             
             // Check if build directory exists

@@ -119,9 +119,10 @@ export class LogParser {
                 ) as [string, string, number, number, string, string];
             } else if (match.length >= 5) {
                 // Alternative format without column
-                [, file, line, severity, message] = match;
+                let lineStr: string;
+                [, file, lineStr, severity, message] = match;
                 column = 1;
-                line = parseInt(line as any);
+                line = parseInt(lineStr);
             } else {
                 return null;
             }

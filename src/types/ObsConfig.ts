@@ -4,16 +4,23 @@
 
 export interface ObsConfig {
     sdk_path: string;
-    build_dir: string;
+    platform_build_dirs?: Record<string, string>;
     build_system: 'cmake' | 'meson' | 'make';
     plugin_entry: string;
     platform_profiles: Record<string, PlatformProfile>;
     dependencies?: Record<string, string>;
     coding_conventions: CodingConventions;
     ai_prompts: AIPromptConfig;
+    auto_features?: AutoFeatures;
+}
+
+export interface AutoFeatures {
+    auto_inject_ai_context?: boolean;
+    auto_commit_on_success?: boolean;
 }
 
 export interface PlatformProfile {
+    build_dir?: string;
     cmake_preset: string;
     build_command: string;
     configure_command: string;
@@ -28,6 +35,7 @@ export interface CodingConventions {
     qt6_moc_include: boolean;
     english_comments: boolean;
     auto_commit: boolean;
+    namespace?: string;
 }
 
 export interface AIPromptConfig {
@@ -96,10 +104,13 @@ export interface PatchOperation {
 }
 
 export interface TemplateGeneration {
-    template_type: 'config' | 'ui_component' | 'cmake_preset';
-    target_path: string;
-    conventions_applied: string[];
-    generated_content: string;
+    template_type?: 'config' | 'ui_component' | 'cmake_preset';
+    template_name?: string;
+    target_path?: string;
+    output_path?: string;
+    conventions_applied?: string[];
+    generated_content?: string;
+    variables?: Record<string, any>;
 }
 
 export interface BuildResult {

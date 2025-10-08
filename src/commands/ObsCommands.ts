@@ -31,6 +31,10 @@ export class ObsCommands {
             vscode.commands.registerCommand('obs.build', () => this.build()),
             vscode.commands.registerCommand('obs.clean', () => this.clean()),
             vscode.commands.registerCommand('obs.fix-error', () => this.fixError()),
+            vscode.commands.registerCommand('obs.show-config', () => this.showConfig()),
+            vscode.commands.registerCommand('obs.init-template', () => this.initTemplate()),
+            vscode.commands.registerCommand('obs.run-tests', () => this.runTests()),
+            vscode.commands.registerCommand('obs.commit', () => this.commit()),
             vscode.commands.registerCommand('obs.create-source', () => this.createSource()),
             vscode.commands.registerCommand('obs.create-ui-component', () => this.createUIComponent()),
             vscode.commands.registerCommand('obs.validate-conventions', () => this.validateConventions()),
@@ -538,5 +542,157 @@ export class ObsCommands {
             language: 'json'
         });
         await vscode.window.showTextDocument(doc);
+    }
+
+    /**
+     * Show plugin configuration
+     */
+    private async showConfig(): Promise<void> {
+        try {
+            const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+            if (!workspaceRoot) {
+                vscode.window.showErrorMessage('No workspace folder found');
+                return;
+            }
+
+            const config = await this.configManager.loadConfig(workspaceRoot);
+            if (!config) {
+                vscode.window.showErrorMessage('No OBS plugin configuration found. Run "OBS: Configure" first.');
+                return;
+            }
+
+            await this.showCurrentSettings(config);
+
+        } catch (error) {
+            Logger.error('Failed to show configuration', error);
+            vscode.window.showErrorMessage('Failed to show configuration. Check output for details.');
+        }
+    }
+
+    /**
+     * Initialize OBS plugin template
+     */
+    private async initTemplate(): Promise<void> {
+        try {
+            const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+            if (!workspaceRoot) {
+                vscode.window.showErrorMessage('No workspace folder found');
+                return;
+            }
+
+            await vscode.window.withProgress({
+                location: vscode.ProgressLocation.Notification,
+                title: 'Initializing OBS Plugin Template',
+                cancellable: false
+            }, async (progress) => {
+                progress.report({ message: 'Creating template files...' });
+                
+                try {
+                    const configPath = await this.templateManager.generateDefaultConfig(workspaceRoot);
+                    vscode.window.showInformationMessage('OBS plugin template initialized successfully!');
+                } catch (error) {
+                    vscode.window.showErrorMessage('Failed to initialize template. Check output for details.');
+                }
+            });
+
+        } catch (error) {
+            Logger.error('Failed to initialize template', error);
+            vscode.window.showErrorMessage('Template initialization failed. Check output for details.');
+        }
+    }
+
+    /**
+     * Run plugin tests
+     */
+    private async runTests(): Promise<void> {
+        try {
+            const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+            if (!workspaceRoot) {
+                vscode.window.showErrorMessage('No workspace folder found');
+                return;
+            }
+
+            const config = await this.configManager.loadConfig(workspaceRoot);
+            if (!config) {
+                vscode.window.showErrorMessage('No OBS plugin configuration found. Run "OBS: Configure" first.');
+                return;
+            }
+
+            await vscode.window.withProgress({
+                location: vscode.ProgressLocation.Notification,
+                title: 'Running Plugin Tests',
+                cancellable: true
+            }, async (progress, token) => {
+                progress.report({ message: 'Running tests...' });
+                
+                // Use the first available platform profile for testing
+                const profile = config.platform_profiles[Object.keys(config.platform_profiles)[0]];
+                if (!profile) {
+                    throw new Error('No platform profile found for testing');
+                }
+                
+                // Build the project first, then run tests
+                const result = await this.buildExecutor.build(profile, workspaceRoot);
+                if (result.success) {
+                    vscode.window.showInformationMessage('Build and tests completed successfully!');
+                } else {
+                    vscode.window.showErrorMessage('Build failed. Check output for details.');
+                }
+            });
+
+        } catch (error) {
+            Logger.error('Failed to run tests', error);
+            vscode.window.showErrorMessage('Test execution failed. Check output for details.');
+        }
+    }
+
+    /**
+     * Auto-commit changes
+     */
+    private async commit(): Promise<void> {
+        try {
+            const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+            if (!workspaceRoot) {
+                vscode.window.showErrorMessage('No workspace folder found');
+                return;
+            }
+
+            const config = await this.configManager.loadConfig(workspaceRoot);
+            if (!config) {
+                vscode.window.showErrorMessage('No OBS plugin configuration found. Run "OBS: Configure" first.');
+                return;
+            }
+
+            // Check if auto-commit is enabled
+            if (!config.auto_features?.auto_commit_on_success) {
+                const enable = await vscode.window.showQuickPick(
+                    ['Yes', 'No'],
+                    { placeHolder: 'Auto-commit is disabled. Enable it for this commit?' }
+                );
+                
+                if (enable !== 'Yes') {
+                    return;
+                }
+            }
+
+            await vscode.window.withProgress({
+                location: vscode.ProgressLocation.Notification,
+                title: 'Committing Changes',
+                cancellable: false
+            }, async (progress) => {
+                progress.report({ message: 'Analyzing changes...' });
+                
+                const result = await this.patchGenerator.autoCommit([]);
+                if (result) {
+                    vscode.window.showInformationMessage('Changes committed successfully!');
+                } else {
+                    vscode.window.showErrorMessage('Failed to commit changes. Check output for details.');
+                }
+            });
+
+        } catch (error) {
+            Logger.error('Failed to commit changes', error);
+            vscode.window.showErrorMessage('Commit failed. Check output for details.');
+        }
     }
 }

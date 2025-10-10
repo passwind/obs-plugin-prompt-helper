@@ -25,7 +25,7 @@
       ]
     },
     "windows": {
-      "preset": "windows",
+      "preset": "windows-x64",
       "config": "Debug",
       "generator": "Visual Studio 17 2022",
       "build_dir": "build_x64",

@@ -513,9 +513,9 @@ void {{ class_name }}::updateSettings() {
     },
     "windows": {
       "build_dir": "build_x64",
-      "cmake_preset": "windows",
-      "build_command": "cmake --build --preset windows --config Debug",
-      "configure_command": "cmake --preset windows",
+      "cmake_preset": "windows-x64",
+      "build_command": "cmake --build --preset windows-x64 --config Debug",
+      "configure_command": "cmake --preset windows-x64",
       "output_dir": "build_x64",
       "compiler": "msvc"
     },
@@ -618,7 +618,7 @@ endif()
       }
     },
     {
-      "name": "windows",
+      "name": "windows-x64",
       "displayName": "Windows x64 Debug",
       "description": "Windows x64 build configuration for OBS plugin",
       "generator": "Visual Studio 17 2022",
@@ -658,8 +658,8 @@ endif()
       "displayName": "Build macOS Debug"
     },
     {
-      "name": "windows",
-      "configurePreset": "windows",
+      "name": "windows-x64",
+      "configurePreset": "windows-x64",
       "displayName": "Build Windows x64 Debug"
     },
     {

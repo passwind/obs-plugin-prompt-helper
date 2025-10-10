@@ -44,6 +44,7 @@ export interface AIPromptConfig {
     include_project_structure: boolean;
     include_recent_errors: boolean;
     custom_system_prompt?: string;
+    custom_context?: string;
 }
 
 export interface AIRequestEnvelope {

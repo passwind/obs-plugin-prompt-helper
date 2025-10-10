@@ -1,10 +1,13 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
+import * as fs from 'fs';
+import * as os from 'os';
 import { ConfigManager } from '../core/ConfigManager';
 import { BuildExecutor } from '../core/BuildExecutor';
 import { AIMiddleware } from '../core/AIMiddleware';
 import { PatchGenerator } from '../core/PatchGenerator';
 import { TemplateManager } from '../core/TemplateManager';
+import { CMakeCacheParser, CMakeDependencyInfo } from '../core/CMakeCacheParser';
 import { Logger } from '../utils/Logger';
 import { ObsConfig, BuildResult, ErrorCollection } from '../types/ObsConfig';
 
@@ -13,6 +16,7 @@ import { ObsConfig, BuildResult, ErrorCollection } from '../types/ObsConfig';
  */
 export class ObsCommands {
     private lastBuildResult: BuildResult | null = null;
+    private cmakeCacheParser: CMakeCacheParser;
 
     constructor(
         private configManager: ConfigManager,
@@ -20,7 +24,9 @@ export class ObsCommands {
         private aiMiddleware: AIMiddleware,
         private patchGenerator: PatchGenerator,
         private templateManager: TemplateManager
-    ) {}
+    ) {
+        this.cmakeCacheParser = new CMakeCacheParser();
+    }
 
     /**
      * Register all OBS commands
@@ -570,7 +576,7 @@ export class ObsCommands {
     }
 
     /**
-     * Initialize OBS plugin template
+     * Initialize OBS plugin template with smart path detection
      */
     private async initTemplate(): Promise<void> {
         try {
@@ -585,13 +591,73 @@ export class ObsCommands {
                 title: 'Initializing OBS Plugin Template',
                 cancellable: false
             }, async (progress) => {
-                progress.report({ message: 'Creating template files...' });
-                
                 try {
+                    // Step 1: Generate default configuration
+                    progress.report({ message: 'Creating default configuration...' });
                     const configPath = await this.templateManager.generateDefaultConfig(workspaceRoot);
-                    vscode.window.showInformationMessage('OBS plugin template initialized successfully!');
+                    
+                    // Step 2: Load the generated config
+                    progress.report({ message: 'Loading configuration...' });
+                    await this.configManager.loadConfig(configPath);
+                    let config = this.configManager.getConfig();
+                    
+                    if (!config) {
+                        throw new Error('Failed to load generated configuration');
+                    }
+
+                    // Step 3: Smart path detection
+                    const detectedDependencies = await this.smartPathDetection(workspaceRoot, progress);
+                    
+                    let pathsUpdated = false;
+                    let detectedPathsInfo = '';
+
+                    if (detectedDependencies && Object.keys(detectedDependencies).length > 0) {
+                        // Step 4: Update configuration with detected paths
+                        progress.report({ message: 'Updating configuration with detected paths...' });
+                        
+                        config = this.updateConfigWithCacheDependencies(config, detectedDependencies);
+                        
+                        // Save updated configuration
+                        await this.configManager.saveConfig(config);
+                        pathsUpdated = true;
+
+                        // Prepare detected paths info for user
+                        const pathEntries = Object.entries(detectedDependencies)
+                            .filter(([_, value]) => value)
+                            .map(([key, value]) => `  • ${key}: ${value}`)
+                            .join('\n');
+                        
+                        if (pathEntries) {
+                            detectedPathsInfo = '\n\n🔍 Detected CMake Dependencies:\n' + pathEntries;
+                        }
+                    } else {
+                        Logger.info('No CMake dependencies detected, using default paths');
+                    }
+
+                    // Step 5: Generate CMakePresets.json with updated configuration
+                    progress.report({ message: 'Creating CMake presets...' });
+                    const presetsPath = await this.templateManager.generateCMakePresets(workspaceRoot, config);
+                    
+                    // Step 6: Show success message with details
+                    const successMessage = 
+                        'OBS plugin template initialized successfully!\n\n' +
+                        '📁 Generated files:\n' +
+                        '  • .obspluginrc.json\n' +
+                        '  • CMakePresets.json\n' +
+                        (pathsUpdated ? '\n✅ Configuration updated with detected CMake paths' : '\n⚠️  Using default paths (no CMake cache found)') +
+                        detectedPathsInfo +
+                        '\n\n🚀 You can now use cmake --preset <platform> to build your plugin.';
+
+                    vscode.window.showInformationMessage(successMessage);
+                    
+                    Logger.info('Template initialization completed successfully');
+                    if (pathsUpdated) {
+                        Logger.info('Configuration updated with detected CMake dependencies');
+                    }
+
                 } catch (error) {
-                    vscode.window.showErrorMessage('Failed to initialize template. Check output for details.');
+                    Logger.error('Failed to initialize template', error);
+                    vscode.window.showErrorMessage(`Failed to initialize template: ${error instanceof Error ? error.message : 'Unknown error'}. Check output for details.`);
                 }
             });
 
@@ -694,5 +760,181 @@ export class ObsCommands {
             Logger.error('Failed to commit changes', error);
             vscode.window.showErrorMessage('Commit failed. Check output for details.');
         }
+    }
+
+    /**
+     * Detect current platform for CMake preset
+     */
+    private getCurrentPlatform(): string {
+        const platform = os.platform();
+        switch (platform) {
+            case 'darwin':
+                return 'macos';
+            case 'win32':
+                return 'windows-x64';
+            case 'linux':
+                return 'linux';
+            default:
+                return 'macos'; // fallback
+        }
+    }
+
+    /**
+     * Check if CMakePresets.json exists and contains the specified preset
+     */
+    private checkCMakePresets(workspaceRoot: string, presetName: string): boolean {
+        const presetsPath = path.join(workspaceRoot, 'CMakePresets.json');
+        if (!fs.existsSync(presetsPath)) {
+            return false;
+        }
+
+        try {
+            const presetsContent = fs.readFileSync(presetsPath, 'utf8');
+            const presets = JSON.parse(presetsContent);
+            return presets.configurePresets?.some((preset: any) => preset.name === presetName) || false;
+        } catch (error) {
+            Logger.warn(`Failed to parse CMakePresets.json: ${error}`);
+            return false;
+        }
+    }
+
+    /**
+     * Execute CMake preset to generate cache
+     */
+    private async executeCMakePreset(workspaceRoot: string, presetName: string): Promise<boolean> {
+        return new Promise((resolve) => {
+            const { spawn } = require('child_process');
+            
+            Logger.info(`Executing cmake --preset ${presetName}...`);
+            
+            const cmake = spawn('cmake', ['--preset', presetName], {
+                cwd: workspaceRoot,
+                stdio: 'pipe'
+            });
+
+            let output = '';
+            let errorOutput = '';
+
+            cmake.stdout.on('data', (data: Buffer) => {
+                output += data.toString();
+            });
+
+            cmake.stderr.on('data', (data: Buffer) => {
+                errorOutput += data.toString();
+            });
+
+            cmake.on('close', (code: number) => {
+                if (code === 0) {
+                    Logger.info(`CMake preset ${presetName} executed successfully`);
+                    Logger.info(`Output: ${output}`);
+                    resolve(true);
+                } else {
+                    Logger.warn(`CMake preset ${presetName} failed with code ${code}`);
+                    Logger.warn(`Error: ${errorOutput}`);
+                    resolve(false);
+                }
+            });
+
+            cmake.on('error', (error: Error) => {
+                Logger.error(`Failed to execute cmake preset: ${error.message}`);
+                resolve(false);
+            });
+        });
+    }
+
+    /**
+     * Update configuration with CMake cache dependencies
+     */
+    private updateConfigWithCacheDependencies(config: ObsConfig, dependencies: CMakeDependencyInfo): ObsConfig {
+        const updatedConfig = { ...config };
+
+        // Update SDK path if found
+        if (dependencies.obs_studio_dir) {
+            updatedConfig.sdk_path = dependencies.obs_studio_dir;
+        }
+
+        // Update dependencies
+        if (updatedConfig.dependencies) {
+            if (dependencies.obs_studio_dir) {
+                updatedConfig.dependencies.obs = dependencies.obs_studio_dir;
+            }
+            if (dependencies.qt6_dir) {
+                updatedConfig.dependencies.qt6 = dependencies.qt6_dir;
+            }
+            if (dependencies.obs_frontend_api_dir) {
+                updatedConfig.dependencies.frontend_api = dependencies.obs_frontend_api_dir;
+            }
+        }
+
+        // Add cache information to AI context
+        if (updatedConfig.ai_prompts) {
+            const cacheInfo = {
+                detected_cmake_paths: dependencies,
+                cache_detection_timestamp: new Date().toISOString()
+            };
+            
+            const existingContext = updatedConfig.ai_prompts.custom_context || '';
+            updatedConfig.ai_prompts.custom_context = existingContext + 
+                (existingContext ? '\n\n' : '') + 
+                JSON.stringify(cacheInfo, null, 2);
+        }
+
+        return updatedConfig;
+    }
+
+    /**
+     * Smart path detection and update workflow
+     */
+    private async smartPathDetection(
+        workspaceRoot: string, 
+        progress: vscode.Progress<{ message?: string; increment?: number }>
+    ): Promise<CMakeDependencyInfo | null> {
+        // Step 1: Check for existing CMake cache
+        progress.report({ message: 'Checking for existing CMake cache...' });
+        
+        const buildDirs = this.cmakeCacheParser.findBuildDirectories(workspaceRoot);
+        
+        if (buildDirs.length > 0) {
+            Logger.info(`Found ${buildDirs.length} build directories with CMake cache`);
+            
+            // Use the first available cache
+            const cacheResult = await this.cmakeCacheParser.parseCacheFile(buildDirs[0]);
+            if (cacheResult.success && Object.keys(cacheResult.dependencies).length > 0) {
+                Logger.info('Successfully extracted dependencies from existing CMake cache');
+                return cacheResult.dependencies;
+            }
+        }
+
+        // Step 2: Try to execute CMake preset if available
+        progress.report({ message: 'Checking for CMake presets...' });
+        
+        const currentPlatform = this.getCurrentPlatform();
+        const hasPresets = this.checkCMakePresets(workspaceRoot, currentPlatform);
+        
+        if (hasPresets) {
+            progress.report({ message: `Executing cmake --preset ${currentPlatform}...` });
+            
+            const presetSuccess = await this.executeCMakePreset(workspaceRoot, currentPlatform);
+            
+            if (presetSuccess) {
+                // Try to read cache again after preset execution
+                progress.report({ message: 'Reading generated CMake cache...' });
+                
+                const newBuildDirs = this.cmakeCacheParser.findBuildDirectories(workspaceRoot);
+                if (newBuildDirs.length > 0) {
+                    const cacheResult = await this.cmakeCacheParser.parseCacheFile(newBuildDirs[0]);
+                    if (cacheResult.success) {
+                        Logger.info('Successfully extracted dependencies from generated CMake cache');
+                        return cacheResult.dependencies;
+                    }
+                }
+            } else {
+                Logger.warn('CMake preset execution failed, falling back to default configuration');
+            }
+        } else {
+            Logger.info('No CMake presets found for current platform');
+        }
+
+        return null;
     }
 }

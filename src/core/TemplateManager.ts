@@ -169,6 +169,27 @@ export class TemplateManager {
     }
 
     /**
+     * Generate CMakePresets.json template
+     */
+    public async generateCMakePresets(projectRoot: string, config: ObsConfig): Promise<string> {
+        const presetsContent = await this.generateTemplate({
+            template_name: 'cmake_presets',
+            variables: {
+                project_name: path.basename(projectRoot),
+                sdk_path: config.sdk_path || '.deps/obs-studio',
+                qt6_path: config.dependencies?.qt6 || '.deps/qt6',
+                obs_path: config.dependencies?.obs || '.deps/obs-studio',
+                frontend_api_path: config.dependencies?.frontend_api || '.deps/obs-studio/UI/obs-frontend-api'
+            }
+        });
+
+        const presetsPath = path.join(projectRoot, 'CMakePresets.json');
+        await this.writeTemplateToFile(presetsContent, presetsPath);
+        
+        return presetsPath;
+    }
+
+    /**
      * Get template content
      */
     private async getTemplate(templateName: string): Promise<string | null> {
@@ -474,41 +495,57 @@ void {{ class_name }}::updateSettings() {
         // Default .obspluginrc.json Template
         this.builtinTemplates.set('obspluginrc_default', `{
   "sdk_path": ".deps/obs-studio",
-  "build_dir": "build_macos",
   "build_system": "cmake",
   "plugin_entry": "plugin-main.cpp",
+  "platform_build_dirs": {
+    "macos": "build_macos",
+    "windows": "build_x64",
+    "linux": "build_linux"
+  },
   "platform_profiles": {
     "macos": {
-      "preset": "macos",
-      "config": "Debug",
-      "generator": "Ninja",
-      "qt_path": ".deps/qt6"
+      "build_dir": "build_macos",
+      "cmake_preset": "macos",
+      "build_command": "cmake --build --preset macos --config Debug",
+      "configure_command": "cmake --preset macos",
+      "output_dir": "build_macos",
+      "compiler": "clang++"
     },
     "windows": {
-      "preset": "windows",
-      "config": "Debug", 
-      "generator": "Visual Studio 17 2022",
-      "qt_path": ".deps/qt6"
+      "build_dir": "build_x64",
+      "cmake_preset": "windows",
+      "build_command": "cmake --build --preset windows --config Debug",
+      "configure_command": "cmake --preset windows",
+      "output_dir": "build_x64",
+      "compiler": "msvc"
+    },
+    "linux": {
+      "build_dir": "build_linux",
+      "cmake_preset": "linux",
+      "build_command": "cmake --build --preset linux --config Debug",
+      "configure_command": "cmake --preset linux",
+      "output_dir": "build_linux",
+      "compiler": "g++"
     }
   },
   "dependencies": {
     "obs": ".deps/obs-studio",
     "qt6": ".deps/qt6",
-    "frontend_api": ".deps/obs-studio/UI/obs-frontend-api",
-    "obs_frontend_api": true,
-    "custom_deps": [".deps"]
+    "frontend_api": ".deps/obs-studio/UI/obs-frontend-api"
   },
   "coding_conventions": {
     "header_extension": ".hpp",
     "use_pragma_once": true,
-    "ui_directory": "ui",
-    "namespace": "obs_plugin",
-    "moc_includes": true
+    "ui_components_dir": "ui",
+    "qt6_moc_include": true,
+    "english_comments": true,
+    "auto_commit": true
   },
   "ai_prompts": {
-    "system_context": "You are an expert OBS Studio plugin developer. Follow C++ best practices and OBS plugin conventions.",
-    "build_error_context": "Analyze build errors for OBS plugins. Consider Qt6 integration, CMake configuration, and OBS API usage.",
-    "code_review_context": "Review code for OBS plugin compliance. Check for proper resource management, thread safety, and OBS API usage patterns."
+    "system_template": "obs_plugin_expert",
+    "include_conventions": true,
+    "include_project_structure": true,
+    "include_recent_errors": true
   }
 }
 `);
@@ -553,6 +590,85 @@ if(APPLE)
         BUNDLE_EXTENSION "so"
     )
 endif()
+`);
+
+        // CMakePresets.json Template
+        this.builtinTemplates.set('cmake_presets', `{
+  "version": 3,
+  "configurePresets": [
+    {
+      "name": "macos",
+      "displayName": "macOS Debug",
+      "description": "macOS build configuration for OBS plugin",
+      "generator": "Ninja",
+      "binaryDir": "build_macos",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_OSX_ARCHITECTURES": "x86_64;arm64",
+        "CMAKE_OSX_DEPLOYMENT_TARGET": "10.15",
+        "CMAKE_PREFIX_PATH": "{{ qt6_path }};{{ obs_path }}",
+        "OBS_STUDIO_DIR": "{{ obs_path }}",
+        "Qt6_DIR": "{{ qt6_path }}/lib/cmake/Qt6",
+        "obs-frontend-api_DIR": "{{ frontend_api_path }}",
+        "ENABLE_FRONTEND_API": "ON",
+        "ENABLE_QT": "ON"
+      },
+      "environment": {
+        "MACOSX_DEPLOYMENT_TARGET": "10.15"
+      }
+    },
+    {
+      "name": "windows",
+      "displayName": "Windows x64 Debug",
+      "description": "Windows x64 build configuration for OBS plugin",
+      "generator": "Visual Studio 17 2022",
+      "architecture": "x64",
+      "binaryDir": "build_x64",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_PREFIX_PATH": "{{ qt6_path }};{{ obs_path }}",
+        "OBS_STUDIO_DIR": "{{ obs_path }}",
+        "Qt6_DIR": "{{ qt6_path }}/lib/cmake/Qt6",
+        "obs-frontend-api_DIR": "{{ frontend_api_path }}",
+        "ENABLE_FRONTEND_API": "ON",
+        "ENABLE_QT": "ON"
+      }
+    },
+    {
+      "name": "linux",
+      "displayName": "Linux Debug",
+      "description": "Linux build configuration for OBS plugin",
+      "generator": "Unix Makefiles",
+      "binaryDir": "build_linux",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_PREFIX_PATH": "{{ qt6_path }};{{ obs_path }}",
+        "OBS_STUDIO_DIR": "{{ obs_path }}",
+        "Qt6_DIR": "{{ qt6_path }}/lib/cmake/Qt6",
+        "obs-frontend-api_DIR": "{{ frontend_api_path }}",
+        "ENABLE_FRONTEND_API": "ON",
+        "ENABLE_QT": "ON"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "macos",
+      "configurePreset": "macos",
+      "displayName": "Build macOS Debug"
+    },
+    {
+      "name": "windows",
+      "configurePreset": "windows",
+      "displayName": "Build Windows x64 Debug"
+    },
+    {
+      "name": "linux",
+      "configurePreset": "linux",
+      "displayName": "Build Linux Debug"
+    }
+  ]
+}
 `);
 
         Logger.info('Initialized builtin templates');

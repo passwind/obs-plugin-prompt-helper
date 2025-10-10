@@ -634,19 +634,40 @@ export class ObsCommands {
                         Logger.info('No CMake dependencies detected, using default paths');
                     }
 
-                    // Step 5: Generate CMakePresets.json with updated configuration
-                    progress.report({ message: 'Creating CMake presets...' });
-                    const presetsPath = await this.templateManager.generateCMakePresets(workspaceRoot, config);
+                    // Step 5: Ensure .obspluginrc.json is ignored by Git (if applicable)
+                    progress.report({ message: 'Updating .gitignore for .obspluginrc.json...' });
+                    let gitignoreUpdated = false;
+                    try {
+                        const gitDir = path.join(workspaceRoot, '.git');
+                        const isGitRepo = fs.existsSync(gitDir);
+                        if (isGitRepo) {
+                            const gitignorePath = path.join(workspaceRoot, '.gitignore');
+                            let content = '';
+                            if (fs.existsSync(gitignorePath)) {
+                                content = await fs.promises.readFile(gitignorePath, 'utf8');
+                            }
+                            const alreadyIgnored = /(^|\n)\s*\.obspluginrc\.json\s*(\n|$)/.test(content);
+                            if (!alreadyIgnored) {
+                                const newContent = content.length > 0 && content.endsWith('\n')
+                                    ? content + '.obspluginrc.json\n'
+                                    : content + (content.length > 0 ? '\n' : '') + '.obspluginrc.json\n';
+                                await fs.promises.writeFile(gitignorePath, newContent, 'utf8');
+                                gitignoreUpdated = true;
+                                Logger.info('Added .obspluginrc.json to .gitignore');
+                            }
+                        }
+                    } catch (e) {
+                        Logger.warn('Failed to update .gitignore for .obspluginrc.json', e);
+                    }
                     
                     // Step 6: Show success message with details
                     const successMessage = 
                         'OBS plugin template initialized successfully!\n\n' +
                         '📁 Generated files:\n' +
-                        '  • .obspluginrc.json\n' +
-                        '  • CMakePresets.json\n' +
+                        '  • .obspluginrc.json' +
+                        (gitignoreUpdated ? '\n  • Updated .gitignore (added .obspluginrc.json)' : '') + '\n' +
                         (pathsUpdated ? '\n✅ Configuration updated with detected CMake paths' : '\n⚠️  Using default paths (no CMake cache found)') +
-                        detectedPathsInfo +
-                        '\n\n🚀 You can now use cmake --preset <platform> to build your plugin.';
+                        detectedPathsInfo;
 
                     vscode.window.showInformationMessage(successMessage);
                     
